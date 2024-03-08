@@ -1089,6 +1089,14 @@ namespace ACE.Server.WorldObjects
                                 item.EmoteManager.OnPickup(this);
                                 item.NotifyOfEvent(RegenerationType.PickUp);
 
+                                // CUSTOM - Automatic Ivorying
+                                if (item.Attuned == AttunedStatus.Attuned && item.Ivoryable == true)
+                                {
+                                    item.Attuned = AttunedStatus.Normal;
+                                    item.AllowedWielder = this.Guid.Full;
+                                    item.CraftsmanName = this.Name;
+                                }
+
                                 if (questSolve)
                                     item.EmoteManager.OnQuest(this);
 
@@ -3431,7 +3439,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
+            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned && !item.Retained;
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {
