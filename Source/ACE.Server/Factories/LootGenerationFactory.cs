@@ -62,7 +62,6 @@ namespace ACE.Server.Factories
             if (deathTreasureId == 338) // Leave Steel Chests alone!
                 return DatabaseManager.World.GetCachedDeathTreasure(deathTreasureId);
 
-            // Tweaks to make the loot system more akin to Infiltration Era and CustomDM
             TreasureDeath deathTreasure;
             TreasureDeath tweakedDeathTreasure;
 
@@ -1370,11 +1369,6 @@ namespace ACE.Server.Factories
                     treasureRoll.Wcid = WeenieClassName.ace49485_encapsulatedspirit;
                     break;
 
-                case TreasureItemType_Orig.Salvage:
-
-                    treasureRoll.Wcid = SalvageWcids.Roll(treasureDeath);
-                    break;
-
                 case TreasureItemType_Orig.ArmorWarrior:
 
                     if (treasureRoll.ArmorType == TreasureArmorType.Undef)
@@ -1663,10 +1657,6 @@ namespace ACE.Server.Factories
 
                 case TreasureItemType_Orig.PetDevice:
                     MutatePetDevice(wo, treasureDeath.Tier);
-                    break;
-
-                case TreasureItemType_Orig.Salvage:
-                    MutateSalvage(wo, treasureDeath.Tier);
                     break;
 
                 case TreasureItemType_Orig.ArmorWarrior:

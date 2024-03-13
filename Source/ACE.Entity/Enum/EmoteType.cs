@@ -143,5 +143,7 @@ namespace ACE.Entity.Enum
         SetMyIntStat                  = 10005,
         SetMyBoolStat                 = 10006,
         SetMyFloatStat                = 10007,
+        AwardSkillRanks               = 10008,
+        CapstoneCacheReward           = 10009,
     }
 }
