@@ -1,21 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using ACE.Common;
-using ACE.DatLoader.Entity;
-using ACE.Database.Models.Auth;
 using ACE.DatLoader.Entity.AnimationHooks;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
-using ACE.Server.Factories;
-using ACE.Server.Factories.Entity;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
-using Google.Protobuf.WellKnownTypes;
-using Org.BouncyCastle.Asn1.X509;
 using Serilog;
 using Time = ACE.Common.Time;
 
@@ -463,7 +456,25 @@ namespace ACE.Server.Entity
                         CriticalDefended = true;
                 }
 
-                if (!CriticalDefended)
+                var perceptionDefended = false;
+                // SPEC BONUS: Perception - 50% chance to defend against a critical hit
+                if (playerDefender != null)
+                {
+                    var perception = playerDefender.GetCreatureSkill(Skill.AssessCreature);
+                    if (perception.AdvancementClass == SkillAdvancementClass.Specialized)
+                    {
+                        var skillCheck = (float)perception.Current / (float)attackSkill.Current;
+                        var criticalDefenseChance = skillCheck > 1f ? 0.5f : skillCheck * 0.5f;
+
+                        if (criticalDefenseChance > ThreadSafeRandom.Next(0f, 1f))
+                        {
+                            perceptionDefended = true;
+                            playerDefender.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your perception skill allowed you to prevent a critical strike!", ChatMessageType.CombatEnemy));
+                        }
+                    }
+                }
+
+                if (!CriticalDefended && perceptionDefended == false)
                 {
                     IsCritical = true;
 
@@ -490,8 +501,6 @@ namespace ACE.Server.Entity
                     {
                         CriticalDamageMod += playerAttacker.GetAccuracyCritDamageMod(Weapon);
                     }
-
-                   
 
                     if (playerAttacker != null)
                     {   // JEWEL - White Sapphire: Ramping Bludgeon Crit Damage Bonus
@@ -911,10 +920,15 @@ namespace ACE.Server.Entity
                         
             var blockChance = 0.0f;
 
+            var effectiveAngle = 180.0f;
+
+            // SPEC BONUS - Shield: Increase shield effective angle to 225 degrees
+            if (playerDefender != null && playerDefender.GetCreatureSkill(Skill.Shield).AdvancementClass == SkillAdvancementClass.Specialized)
+                effectiveAngle = 225.0f;
+
             // check for frontal radius prior to allowing a block unless PhalanxActivated
             if (playerDefender == null || playerDefender.EquippedCombatAbility != CombatAbility.Phalanx || playerDefender.LastPhalanxActivated < Time.GetUnixTime() - playerDefender.PhalanxActivatedDuration || playerDefender.GetEquippedShield == null)
             {
-                var effectiveAngle = 180.0f;
                 var angle = defender.GetAngle(attacker);
                 if (Math.Abs(angle) > effectiveAngle / 2.0f)
                     return false;
