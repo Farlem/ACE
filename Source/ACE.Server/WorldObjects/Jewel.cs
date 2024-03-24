@@ -287,8 +287,7 @@ namespace ACE.Server.WorldObjects
 
             var jewel = RecipeManager.CreateItem(player, 1053900, 1);
 
-            if (target.IconId != null)
-                jewel.IconId = target.IconId;
+            jewel.IconId = target.IconId;
 
             // calculate bonuses to the carving roll  TODO : 100 skill at level 20 gives you 0.5 quality mod. Need to determine what an appropriate skill is by level to set this correctly
 
@@ -648,7 +647,7 @@ namespace ACE.Server.WorldObjects
                 }
                 // cycle through slots, emptying out ones that aren't already
 
-                for (int i = 1; i <= 8; i++)
+                for (int i = 1; i <= 2; i++)
                 {
                     string currentSocket = (string)target.GetType().GetProperty($"JewelSocket{i}").GetValue(target);
 
