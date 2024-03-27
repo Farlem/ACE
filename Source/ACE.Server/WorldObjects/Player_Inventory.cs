@@ -737,15 +737,31 @@ namespace ACE.Server.WorldObjects
 
             if (container != null)
             {
-                // We add to these values because amount will be negative if we're subtracting from a stack, so we want to add a negative number.
-                container.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
-                container.Value += (stack.StackUnitValue ?? 0) * amount;
+                if (container.MerchandiseItemTypes.HasValue)
+                {
+                    container.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
+                    container.Value += (stack.StackUnitValue ?? 0) * amount;
+                }
+                else
+                {
+                    // We add to these values because amount will be negative if we're subtracting from a stack, so we want to add a negative number.
+                    container.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
+                    container.Value += (stack.StackUnitValue ?? 0) * amount;
+                }
             }
 
             if (rootContainer != null && rootContainer != container)
             {
-                rootContainer.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
-                rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                if (container != null && container.MerchandiseItemTypes.HasValue)
+                {
+                    rootContainer.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
+                    rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                }
+                else
+                {
+                    rootContainer.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
+                    rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                }
             }
 
             return true;
@@ -1308,6 +1324,14 @@ namespace ACE.Server.WorldObjects
         private bool DoHandleActionPutItemInContainer(WorldObject item, Container itemRootOwner, bool itemWasEquipped, Container container, Container containerRootOwner, int placement)
         {
             //Console.WriteLine($"-> DoHandleActionPutItemInContainer({item.Name}, {itemRootOwner?.Name}, {itemWasEquipped}, {container?.Name}, {containerRootOwner?.Name}, {placement})");
+            ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
+            var itemType = item.WeenieType == WeenieType.Ammunition ? ItemType.CraftFletchingIntermediate : item.ItemType;
+            if (containerValidTypes != 0 && (itemType & containerValidTypes) == 0)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
 
             Position prevLocation = null;
             Landblock prevLandblock = null;
@@ -1386,8 +1410,16 @@ namespace ACE.Server.WorldObjects
 
             if (container != containerRootOwner && containerRootOwner != null)
             {
-                containerRootOwner.EncumbranceVal += (item.EncumbranceVal ?? 0);
-                containerRootOwner.Value += (item.Value ?? 0);
+                if (container.MerchandiseItemTypes.HasValue)
+                {
+                    containerRootOwner.EncumbranceVal += (int)(item.EncumbranceVal ?? 0) / 2;
+                    containerRootOwner.Value += (item.Value ?? 0);
+                }
+                else
+                {
+                    containerRootOwner.EncumbranceVal += (item.EncumbranceVal ?? 0);
+                    containerRootOwner.Value += (item.Value ?? 0);
+                }
             }
 
             // for moving objects within the main pack of a storage chest, we need to save to ensure they retain their placement position on next opening another bank
@@ -2458,6 +2490,15 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
+            var itemType = stack.WeenieType == WeenieType.Ammunition ? ItemType.CraftFletchingIntermediate : stack.ItemType;
+            if (containerValidTypes != 0 && (stack.ItemType & containerValidTypes) == 0)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stack.Guid.Full));
+                return;
+            }
+
             if ((stackRootOwner == this && containerRootOwner != this)  || (stackRootOwner != this && containerRootOwner == this)) // Movement is between the player and the world
             {
                 if (stackRootOwner is Vendor)
@@ -2580,8 +2621,16 @@ namespace ACE.Server.WorldObjects
 
             if (container != containerRootOwner && containerRootOwner != null)
             {
-                containerRootOwner.EncumbranceVal += (stack.StackUnitEncumbrance * amount);
-                containerRootOwner.Value += (stack.StackUnitValue * amount);
+                if (container.MerchandiseItemTypes.HasValue)
+                {
+                    containerRootOwner.EncumbranceVal += (int)(stack.StackUnitEncumbrance * amount / 2);
+                    containerRootOwner.Value += (stack.StackUnitValue * amount);
+                }
+                else
+                {
+                    containerRootOwner.EncumbranceVal += (stack.StackUnitEncumbrance * amount);
+                    containerRootOwner.Value += (stack.StackUnitValue * amount);
+                }
             }
 
             Session.Network.EnqueueSend(new GameMessageCreateObject(newStack));
