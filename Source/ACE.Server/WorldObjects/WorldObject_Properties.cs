@@ -1238,8 +1238,8 @@ namespace ACE.Server.WorldObjects
 
         public double? ArmorPerceptionMod
         {
-            get => GetProperty(PropertyFloat.ArmorAssessMod);
-            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ArmorAssessMod); else SetProperty(PropertyFloat.ArmorAssessMod, value.Value); }
+            get => GetProperty(PropertyFloat.ArmorPerceptionMod);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ArmorPerceptionMod); else SetProperty(PropertyFloat.ArmorPerceptionMod, value.Value); }
         }
 
         public double? ArmorDeceptionMod
@@ -1592,6 +1592,18 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyInstanceId.Patron);
             set { if (!value.HasValue) RemoveProperty(PropertyInstanceId.Patron); else SetProperty(PropertyInstanceId.Patron, value.Value); }
+        }
+
+        public uint? PatronAccountId
+        {
+            get => GetProperty(PropertyInstanceId.PatronAccountId);
+            set { if (!value.HasValue) RemoveProperty(PropertyInstanceId.PatronAccountId); else SetProperty(PropertyInstanceId.PatronAccountId, value.Value); }
+        }
+
+        public double? SworeAllegiance
+        {
+            get => GetProperty(PropertyFloat.SworeAllegiance);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.SworeAllegiance); else SetProperty(PropertyFloat.SworeAllegiance, value.Value); }
         }
 
         public ushort? HookType
@@ -3954,6 +3966,12 @@ namespace ACE.Server.WorldObjects
         {
             get => (int?)GetProperty(PropertyInt.ItemSpellId);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.ItemSpellId); else SetProperty(PropertyInt.ItemSpellId, value.Value); }
+        }
+
+        public string AllegianceLog
+        {
+            get => GetProperty(PropertyString.AllegianceLog);
+            set { if (value == null) RemoveProperty(PropertyString.AllegianceLog); else SetProperty(PropertyString.AllegianceLog, value); }
         }
 
         public uint? BankAccountId

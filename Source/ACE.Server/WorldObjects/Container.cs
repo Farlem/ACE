@@ -591,6 +591,9 @@ namespace ACE.Server.WorldObjects
                 worldObject.WieldSkillType4 = worldObject.WieldSkillType4.HasValue ? (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4) : null;
             }
 
+            if (this is Player && worldObject.MutableQuestItem == true)
+                LootGenerationFactory.MutateQuestItem(worldObject);
+
             OnAddItem();
 
             return true;

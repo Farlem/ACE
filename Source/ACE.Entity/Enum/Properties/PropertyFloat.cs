@@ -218,6 +218,8 @@ namespace ACE.Entity.Enum.Properties
         Damage                         = 189,
         WeaponAuraDamage               = 190,
         StaminaCostReductionMod        = 191,
+        RankContribution               = 192,
+        SworeAllegiance                = 193,
 
         [ServerOnly]
         PCAPRecordedWorkmanship        = 8004,
@@ -260,7 +262,7 @@ namespace ACE.Entity.Enum.Properties
         ArmorStaminaRegenMod           = 20010,
         ArmorManaRegenMod              = 20011,
         ArmorShieldMod                 = 20012,
-        ArmorAssessMod                 = 20013,
+        ArmorPerceptionMod                 = 20013,
         ArmorThieveryMod               = 20014,
         WeaponWarMagicMod              = 20015,
         WeaponLifeMagicMod             = 20016,
