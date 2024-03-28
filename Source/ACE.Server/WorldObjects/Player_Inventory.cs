@@ -723,7 +723,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// If you want to subtract from a stack, amount should be negative.
         /// </summary>
-        private bool AdjustStack(WorldObject stack, int amount, Container container, Container rootContainer)
+        private bool AdjustStack(WorldObject stack, int amount, Container container, Container rootContainer, bool outgoing = false)
         {
             if (stack.StackSize + amount <= 0 || stack.StackSize + amount > stack.MaxStackSize)
             {
@@ -737,9 +737,14 @@ namespace ACE.Server.WorldObjects
 
             if (container != null)
             {
-                if (container.MerchandiseItemTypes.HasValue)
+                if (container.MerchandiseItemTypes.HasValue && !outgoing)
                 {
                     container.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
+                    container.Value += (stack.StackUnitValue ?? 0) * amount;
+                }
+                else if (container.MerchandiseItemTypes.HasValue && outgoing)
+                {
+                    container.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
                     container.Value += (stack.StackUnitValue ?? 0) * amount;
                 }
                 else
@@ -750,18 +755,24 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (rootContainer != null && rootContainer != container)
+            if (rootContainer != null)
             {
-                if (container != null && container.MerchandiseItemTypes.HasValue)
+                if (rootContainer != container)
                 {
-                    rootContainer.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
-                    rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                    if (container != null && container.MerchandiseItemTypes.HasValue)
+                    {
+                        rootContainer.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
+                        rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                    }
+                    else
+                    {
+                        rootContainer.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
+                        rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                    }
                 }
-                else
-                {
-                    rootContainer.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
-                    rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
-                }
+
+                if (rootContainer is Player player)
+                    player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
             }
 
             return true;
@@ -2495,7 +2506,7 @@ namespace ACE.Server.WorldObjects
 
             ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
             var itemType = stack.WeenieType == WeenieType.Ammunition ? ItemType.CraftFletchingIntermediate : stack.ItemType;
-            if (containerValidTypes != 0 && (stack.ItemType & containerValidTypes) == 0)
+            if (containerValidTypes != 0 && (itemType & containerValidTypes) == 0)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stack.Guid.Full));
@@ -2634,12 +2645,20 @@ namespace ACE.Server.WorldObjects
                     containerRootOwner.EncumbranceVal += (stack.StackUnitEncumbrance * amount);
                     containerRootOwner.Value += (stack.StackUnitValue * amount);
                 }
+                if (containerRootOwner is Player player)
+                    player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(player, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
             }
 
             Session.Network.EnqueueSend(new GameMessageCreateObject(newStack));
             Session.Network.EnqueueSend(new GameEventItemServerSaysContainId(Session, newStack, container));
 
-            if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner))
+            // if stack is in a specialized pack, and pack we're sending to is not contained in player, we need to pass in outgoing bool
+            if (stackFoundInContainer.MerchandiseItemTypes.HasValue && containerRootOwner == null || this is Container playerContainer && containerRootOwner != playerContainer)
+            {
+                if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner, true))
+                    return false;
+            }
+            else if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner))
                 return false;
 
             if (stackRootOwner == null)
@@ -2754,7 +2773,7 @@ namespace ACE.Server.WorldObjects
                 else
                 {
                     // restore original stack
-                    if (AdjustStack(stack, amount, stackFoundInContainer, stackRootOwner))
+                    if (AdjustStack(stack, amount, stackFoundInContainer, stackRootOwner, true))
                     {
                         Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
@@ -2911,7 +2930,7 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner))
+                        if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner, true))
                         {
                             Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.ActionCancelled));
                             return;

@@ -686,14 +686,11 @@ namespace ACE.Server.WorldObjects
             {
                 int removedItemsPlacementPosition = item.PlacementPosition ?? 0;
 
-                //item was in spec pack???
-
-
                 item.OwnerId = null;
                 item.ContainerId = null;
-                //item.Container = null;
                 item.PlacementPosition = null;
 
+                // check to make sure this isn't a Specialized Pack before nulling out container; in that case we need to preserve the reference until later in method
                 if (item.Container != null && item.Container is Container pack && !pack.MerchandiseItemTypes.HasValue)
                     item.Container = null;
 
@@ -733,8 +730,9 @@ namespace ACE.Server.WorldObjects
                     {
                         EncumbranceVal -= (item.EncumbranceVal ?? 0) / 2;
                     }
-                    // need a way to reference the fact that this item is coming out of a spec pack, since it removes from both the spec pack and player inventory when moving to another part of the players inventory
-                    // so need to only sub 1/2 there, BUT need the full value otherwise
+                    // on removal of item, this method is called first for the pack itself, then for the player
+                    // we need to check for Specialized pack here to ensure we only remove 1/2 BU value
+                    // otherwise this method gets called for moving out of all other kinds of side packs, so must remove the full BU value
                     else if (this is Player player && item.Container != null && item.Container is Container cont && cont.MerchandiseItemTypes.HasValue)
                     {
                         item.Container = null;
