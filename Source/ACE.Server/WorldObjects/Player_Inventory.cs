@@ -734,15 +734,15 @@ namespace ACE.Server.WorldObjects
             stack.StackSize += amount;
             stack.EncumbranceVal = (stack.StackUnitEncumbrance ?? 0) * (stack.StackSize ?? 1);
             stack.Value = (stack.StackUnitValue ?? 0) * (stack.StackSize ?? 1);
-
+  
             if (container != null)
-            {
-                if (container.MerchandiseItemTypes.HasValue && !outgoing)
+            {    // if the stack is outgoing, we need to remove only 1/2 BU from the specialized pack
+                if (container.MerchandiseItemTypes.HasValue && outgoing)
                 {
                     container.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
                     container.Value += (stack.StackUnitValue ?? 0) * amount;
                 }
-                else if (container.MerchandiseItemTypes.HasValue && outgoing)
+                else if (container.MerchandiseItemTypes.HasValue && !outgoing)
                 {
                     container.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
                     container.Value += (stack.StackUnitValue ?? 0) * amount;
@@ -758,10 +758,15 @@ namespace ACE.Server.WorldObjects
             if (rootContainer != null)
             {
                 if (rootContainer != container)
-                {
-                    if (container != null && container.MerchandiseItemTypes.HasValue)
+                {   // if the stack is outgoing, we need to remove 1/2 BU from the player
+                    if (container != null && container.MerchandiseItemTypes.HasValue && outgoing)
                     {
                         rootContainer.EncumbranceVal += (int)((stack.StackUnitEncumbrance ?? 0) * amount / 2);
+                        rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
+                    }
+                    else if (container != null && container.MerchandiseItemTypes.HasValue && !outgoing)
+                    {
+                        rootContainer.EncumbranceVal += (stack.StackUnitEncumbrance ?? 0) * amount;
                         rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
                     }
                     else
@@ -2741,7 +2746,7 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner))
+                if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner, true))
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.ActionCancelled));
                     return;
@@ -3266,6 +3271,7 @@ namespace ACE.Server.WorldObjects
             else // This is a self-contained movement
             {
                 DoHandleActionStackableMerge(sourceStack, targetStack, amount);
+                
             }
         }
 
