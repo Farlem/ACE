@@ -2123,15 +2123,7 @@ namespace ACE.Server.WorldObjects
 
         public int? EncumbranceVal
         {
-            get
-            {
-                if (Container != null && Container is Container container && container.MerchandiseItemTypes.HasValue)
-                {
-                    return 0;
-                }
-                else
-                  return GetProperty(PropertyInt.EncumbranceVal);
-            }
+            get => GetProperty(PropertyInt.EncumbranceVal); 
             set { if (!value.HasValue) RemoveProperty(PropertyInt.EncumbranceVal); else SetProperty(PropertyInt.EncumbranceVal, value.Value); }
         }
 

@@ -546,7 +546,14 @@ namespace ACE.Server.WorldObjects
                         {
                             if (sidePack.TryAddToInventory(worldObject, out container, placementPosition, true))
                             {
-                                EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
+                                // SPECIALIZED PACKS
+                                if (sidePack.MerchandiseItemTypes.HasValue)
+                                {
+                                    EncumbranceVal += (int)(worldObject.EncumbranceVal ?? 0) / 2;
+                                }
+                                else
+                                    EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
+
                                 Value += (worldObject.Value ?? 0);
 
                                 return true;
@@ -581,8 +588,17 @@ namespace ACE.Server.WorldObjects
 
             Inventory.Add(worldObject.Guid, worldObject);
 
-            EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
+            // SPECIALIZED PACKS - This called when adding anything to any pack
+            if (this.MerchandiseItemTypes.HasValue)
+            {
+                EncumbranceVal += (int)(worldObject.EncumbranceVal ?? 0) / 2;
+            }
+            else
+                EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
             Value += (worldObject.Value ?? 0);
+
+            if (this is Player playerContainer)
+                playerContainer.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(playerContainer, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
             container = this;
 
@@ -670,10 +686,17 @@ namespace ACE.Server.WorldObjects
             {
                 int removedItemsPlacementPosition = item.PlacementPosition ?? 0;
 
+                //item was in spec pack???
+
+
                 item.OwnerId = null;
                 item.ContainerId = null;
-                item.Container = null;
+                //item.Container = null;
                 item.PlacementPosition = null;
+
+                if (item.Container != null && item.Container is Container pack && !pack.MerchandiseItemTypes.HasValue)
+                    item.Container = null;
+
 
                 // Move all the existing items PlacementPosition over.
                 if (!item.UseBackpackSlot)
@@ -681,7 +704,14 @@ namespace ACE.Server.WorldObjects
                 else
                     Inventory.Values.Where(i => i.UseBackpackSlot && i.PlacementPosition > removedItemsPlacementPosition).ToList().ForEach(i => i.PlacementPosition--);
 
-                EncumbranceVal -= (item.EncumbranceVal ?? 0);
+                // SPECIALIZED PACKS - Called when removing an item/moving from main pack to side pack
+                if (this.MerchandiseItemTypes.HasValue)
+                {
+                    EncumbranceVal -= (int)(item.EncumbranceVal ?? 0) / 2;
+                }
+                else
+                    EncumbranceVal -= (item.EncumbranceVal ?? 0);
+
                 Value -= (item.Value ?? 0);
 
                 if (forceSave)
@@ -698,8 +728,20 @@ namespace ACE.Server.WorldObjects
             {
                 if (((Container)container).TryRemoveFromInventory(objectGuid, out item))
                 {
-                    EncumbranceVal -= (item.EncumbranceVal ?? 0);
-                    Value -= (item.Value ?? 0);
+                    // this should ONLY fire off when removing from a spec pack, but it fires off on player when that happens
+                    if (MerchandiseItemTypes.HasValue)
+                    {
+                        EncumbranceVal -= (item.EncumbranceVal ?? 0) / 2;
+                    }
+                    // need a way to reference the fact that this item is coming out of a spec pack, since it removes from both the spec pack and player inventory when moving to another part of the players inventory
+                    // so need to only sub 1/2 there, BUT need the full value otherwise
+                    else if (this is Player player && item.Container != null && item.Container is Container cont && cont.MerchandiseItemTypes.HasValue)
+                    {
+                        item.Container = null;
+                        EncumbranceVal -= (int)(item.EncumbranceVal ?? 0) / 2;
+                    }
+                    else
+                        EncumbranceVal -= (int)(item.EncumbranceVal ?? 0);
 
                     return true;
                 }

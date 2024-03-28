@@ -1410,6 +1410,7 @@ namespace ACE.Server.WorldObjects
 
             if (container != containerRootOwner && containerRootOwner != null)
             {
+                // SPECIALIZED PACKS: Called when moving items INTO a side pack from main pack/ground/another container
                 if (container.MerchandiseItemTypes.HasValue)
                 {
                     containerRootOwner.EncumbranceVal += (int)(item.EncumbranceVal ?? 0) / 2;
@@ -1421,6 +1422,8 @@ namespace ACE.Server.WorldObjects
                     containerRootOwner.Value += (item.Value ?? 0);
                 }
             }
+            // add a property update to refresh burden with the change?
+            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
             // for moving objects within the main pack of a storage chest, we need to save to ensure they retain their placement position on next opening another bank
             if (container != null && container.WeenieType == WeenieType.Storage) 
