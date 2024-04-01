@@ -25,6 +25,8 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public Dictionary<ObjectGuid, DateTime> LootPermission;
 
+        public List<CorpseLog> CorpseLog = new List<CorpseLog> { };
+
         /// <summary>
         /// Called when a player dies, in conjunction with Die()
         /// </summary>
@@ -480,7 +482,6 @@ namespace ACE.Server.WorldObjects
             var numCoinsDropped = GetNumCoinsDropped();
 
             var level = Level ?? 1;
-            var canDropWielded = level >= 35;
 
             // get all items in inventory
             var inventory = GetAllPossessions();
@@ -488,9 +489,8 @@ namespace ACE.Server.WorldObjects
             // exclude pyreals from randomized death item calculation
             inventory = inventory.Where(i => i.WeenieClassId != coinStackWcid).ToList();
 
-            // exclude wielded items if < level 35
-            if (!canDropWielded)
-                inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
+            // exclude wielded items 
+            inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
 
             // exclude bonded items
             inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();

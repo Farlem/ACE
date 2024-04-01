@@ -322,6 +322,23 @@ namespace ACE.Entity
             Rotation = Quaternion.Identity;
         }
 
+        public Vector2 FindCoordinates(Position position)
+        {
+            var pos = position.Pos;
+
+
+            //float originX = (position.LandblockX * BlockLength + position.CellX * CellLength + position.PositionX) / 240;
+            //float originY = (position.LandblockY * BlockLength + position.CellY * CellLength + position.PositionY) / 240;
+
+            // Adjust for the translation
+            var originX = (position.LandblockX * BlockLength + position.CellX + position.PositionX) / 240 - 101.95f;
+            var originY = (position.LandblockY * BlockLength + position.CellY + position.PositionY) / 240 - 101.95f;
+
+            // Return the original coordinates
+            return new Vector2(originX, originY);
+
+        }
+
         public void Serialize(BinaryWriter payload, PositionFlags positionFlags, int animationFrame, bool writeLandblock = true)
         {
             payload.Write((uint)positionFlags);

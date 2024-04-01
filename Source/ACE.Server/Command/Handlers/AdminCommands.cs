@@ -693,6 +693,10 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("smite", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Kills the selected target or all monsters in radar range if \"all\" is specified.", "[all, Player's Name]")]
         public static void HandleSmite(Session session, params string[] parameters)
         {
+
+            var loc = session.Player.Location;
+            var cmd = loc.FindCoordinates(loc);
+            Console.WriteLine(cmd.ToString());
             // @smite [all] - Kills the selected target or all monsters in radar range if "all" is specified.
 
             if (parameters?.Length > 0)

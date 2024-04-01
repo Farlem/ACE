@@ -189,6 +189,57 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat($"Cast efficiency meter {(session.Player.MagicState.CastMeter ? "enabled" : "disabled")}", ChatMessageType.Broadcast));
         }
 
+        [CommandHandler("corpses", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Shows location of recent player corpses on the landscape")]
+        public static void CorpseList(Session session, params string[] parameters)
+        {
+
+            var msg = "";
+            if (session.Player.CorpseLog == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You have no recent corpses.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (session.Player.CorpseLog != null)
+            {
+                foreach (var corpse in session.Player.CorpseLog)
+                {
+                    if (Time.GetUnixTime() > corpse.DecayTime)
+                        session.Player.CorpseLog.Remove(corpse);
+                }
+
+                if (session.Player.CorpseLog.Count == 0)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have no recent corpses.", ChatMessageType.Broadcast));
+                    return;
+                }
+
+
+                var count = 1;
+
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Your most recent corpses:", ChatMessageType.Broadcast));
+
+                foreach (var corpse in session.Player.CorpseLog)
+                {
+                    var position = corpse.Location;
+
+                    var coordsNS = (position.LandblockY * 192 + position.CellY + position.PositionY) / 240 - 101.95f;
+                    var coordsEW = (position.LandblockX * 192 + position.CellX + position.PositionX) / 240 - 101.95f;
+
+                    var nS = coordsNS > 0 ? "N" : "S";
+                    var eW = coordsEW > 0 ? "E" : "W";
+
+                    coordsNS = Math.Abs(coordsNS);
+                    coordsEW = Math.Abs(coordsEW);
+
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{count}:  Killed By - {corpse.Killer}  |  Time of Death - {corpse.Time}  |  Location - {Math.Round(coordsNS, 2)} {nS}, {Math.Round(coordsEW, 2)} {eW}.", ChatMessageType.Broadcast));
+
+                    count++;
+                }
+
+            }
+         }
+
         private static List<string> configList = new List<string>()
         {
             "Common settings:\nConfirmVolatileRareUse, MainPackPreferred, SalvageMultiple, SideBySideVitals, UseCraftSuccessDialog",
