@@ -151,7 +151,21 @@ namespace ACE.Server.WorldObjects
         {
             // players can loot their own corpses
             if (VictimId == null || player.Guid.Full == VictimId)
+            {
+                if (player.CorpseLog != null)
+                {
+                    foreach (var corpse in player.CorpseLog)
+                    {
+                        if (corpse.Corpse == this.Guid)
+                        {
+                            player.CorpseLog.Remove(corpse);
+                            break;
+                        }
+                    }
+
+                }
                 return true;
+            }
 
             // players can loot corpses of creatures they killed or corpses that have previously been looted by killer
             if (KillerId != null && player.Guid.Full == KillerId || IsLooted)
