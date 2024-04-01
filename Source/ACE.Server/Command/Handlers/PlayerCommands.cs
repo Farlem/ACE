@@ -192,50 +192,45 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("corpses", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Shows location of recent player corpses on the landscape")]
         public static void CorpseList(Session session, params string[] parameters)
         {
+            var corpses = session.Player.CorpseManager.GetCorpses();
 
-            var msg = "";
-            if (session.Player.CorpseLog == null)
+            if (corpses == null || corpses.Count == 0)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat("You have no recent corpses.", ChatMessageType.Broadcast));
                 return;
             }
 
-            if (session.Player.CorpseLog != null)
+            if (corpses != null)
             {
-                foreach (var corpse in session.Player.CorpseLog)
-                {
-                    if (Time.GetUnixTime() > corpse.DecayTime)
-                        session.Player.CorpseLog.Remove(corpse);
+                // first we query the DB to see if any of the corpses no longer exist, and remove them from the list if so
+                foreach (var corpse in corpses)
+                { 
+                    var stillExists = DatabaseManager.Shard.BaseDatabase.GetBiota(corpse.Corpse.Full);
+
+                    if (stillExists != null && stillExists.WeenieType != (int)WeenieType.Corpse)
+                        session.Player.CorpseManager.RemoveCorpse(corpse);
                 }
 
-                if (session.Player.CorpseLog.Count == 0)
+                var revisedCorpses = session.Player.CorpseManager.GetCorpses();
+
+                if (revisedCorpses == null || revisedCorpses.Count == 0)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat("You have no recent corpses.", ChatMessageType.Broadcast));
                     return;
                 }
 
-
                 var count = 1;
 
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Your most recent corpses:", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Your most recent corpses: (Corpses will be removed from this list once opened or once decay time expires, though depending on landblock activity they may still exist in the world", ChatMessageType.Broadcast));
 
-                foreach (var corpse in session.Player.CorpseLog)
+                foreach (var corpse in revisedCorpses)
                 {
-                    var position = corpse.Location;
-
-                    var coordsNS = (position.LandblockY * 192 + position.CellY + position.PositionY) / 240 - 101.95f;
-                    var coordsEW = (position.LandblockX * 192 + position.CellX + position.PositionX) / 240 - 101.95f;
-
-                    var nS = coordsNS > 0 ? "N" : "S";
-                    var eW = coordsEW > 0 ? "E" : "W";
-
-                    coordsNS = Math.Abs(coordsNS);
-                    coordsEW = Math.Abs(coordsEW);
-
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"{count}:  Killed By - {corpse.Killer}  |  Time of Death - {corpse.Time}  |  Location - {Math.Round(coordsNS, 2)} {nS}, {Math.Round(coordsEW, 2)} {eW}.", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{count}:  Killed By - {corpse.Killer}  |  Time of Death - {corpse.Time}  |  Location - {corpse.Location}  |   Estimated Time to Decay - {corpse.DecayTime}", ChatMessageType.Broadcast));
 
                     count++;
                 }
+
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Corpses will be removed from this list once opened, or once the decay time expires, though depending on landblock activity they may still exist in the world.", ChatMessageType.Broadcast));
 
             }
          }

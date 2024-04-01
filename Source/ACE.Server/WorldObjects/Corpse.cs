@@ -152,13 +152,14 @@ namespace ACE.Server.WorldObjects
             // players can loot their own corpses
             if (VictimId == null || player.Guid.Full == VictimId)
             {
-                if (player.CorpseLog != null)
+                // remove this corpse from their log upon opening
+                if (player.CorpseManager.CorpseLog != null)
                 {
-                    foreach (var corpse in player.CorpseLog)
+                    foreach (var corpse in player.CorpseManager.CorpseLog)
                     {
                         if (corpse.Corpse == this.Guid)
                         {
-                            player.CorpseLog.Remove(corpse);
+                            player.CorpseManager.Remove(corpse);
                             break;
                         }
                     }
@@ -172,6 +173,8 @@ namespace ACE.Server.WorldObjects
                 return true;
 
             var victimGuid = new ObjectGuid(VictimId.Value);
+
+            var victim = PlayerManager.GetOnlinePlayer(victimGuid);
 
             // players can /permit other players to loot their corpse if not killed by another player killer.
             if (player.HasLootPermission(victimGuid) && PkLevel != PKLevel.PK)
@@ -190,11 +193,38 @@ namespace ACE.Server.WorldObjects
                     permitteeOpened.Add(player.Guid.Full);
 
                     player.LootPermission.Remove(victimGuid);
+
+                    // if permitter is still online, remove this corpse from their log upon opening
+                    if (victim != null)
+                    {
+                        foreach (var corpse in victim.CorpseManager.CorpseLog)
+                        {
+                            if (corpse.Corpse == this.Guid)
+                            {
+                                victim.CorpseManager.Remove(corpse);
+                                break;
+                            }
+                        }
+                    }
+
                 }
                 return true;
             }
             if (permitteeOpened != null && permitteeOpened.Contains(player.Guid.Full))
+            {
+                if (victim != null)
+                {
+                    foreach (var corpse in victim.CorpseManager.CorpseLog)
+                    {
+                        if (corpse.Corpse == this.Guid)
+                        {
+                            victim.CorpseManager.Remove(corpse);
+                            break;
+                        }
+                    }
+                }
                 return true;
+            }
 
             // all players can loot monster corpses after 1/2 decay time except if corpse generates a rare
             if (TimeToRot != null && TimeToRot < HalfLife && !new ObjectGuid(VictimId.Value).IsPlayer() && !CorpseGeneratedRare)

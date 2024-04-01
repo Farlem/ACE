@@ -4146,7 +4146,9 @@ namespace ACE.Server.WorldObjects
                     totalBurden += inventoryObject.EncumbranceVal ?? 0;
             }
             EncumbranceVal = totalBurden;
-            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
+
+            if (Session != null)
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
         }
 
 

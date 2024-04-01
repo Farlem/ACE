@@ -660,7 +660,7 @@ namespace ACE.Server.WorldObjects
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have retained all your items. You do not need to recover your corpse!", ChatMessageType.Broadcast));
                 }
 
-                player.CorpseLog.Add(new CorpseLog(corpse.Guid, killer.Name, player.Location, Time.GetUnixTime() + (double)player.Level * 3600));
+                player.CorpseManager.Add(corpse.Guid, killer.Name, player.Location, (int)player.Level);
 
             }
             else

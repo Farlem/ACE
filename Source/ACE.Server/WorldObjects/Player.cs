@@ -121,6 +121,20 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        protected CorpseManager _corpseManager;
+
+        public CorpseManager CorpseManager
+        {
+            get
+            {
+                if (_corpseManager == null)
+                {
+                    _corpseManager = new CorpseManager(this);
+                }
+
+                return _corpseManager;
+            }
+        }
         public Hotspot WellRestedHotspot;
 
         public ConfirmationManager ConfirmationManager;
@@ -257,6 +271,8 @@ namespace ACE.Server.WorldObjects
             RecordCast = new RecordCast(this);
 
             AttackQueue = new AttackQueue(this);
+
+            _corpseManager = new CorpseManager(this);
 
             if (!PlayerKillsPk.HasValue)
                 PlayerKillsPk = 0;

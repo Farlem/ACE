@@ -25,8 +25,6 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public Dictionary<ObjectGuid, DateTime> LootPermission;
 
-        public List<CorpseLog> CorpseLog = new List<CorpseLog> { };
-
         /// <summary>
         /// Called when a player dies, in conjunction with Die()
         /// </summary>

@@ -1,5 +1,7 @@
+using ACE.Entity;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 
@@ -727,6 +729,95 @@ namespace ACE.Database.Models.Shard
                 {
                     rwLock.ExitWriteLock();
                 }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        // =====================================
+        // CharacterPropertiesCorpseRegistry
+        // =====================================
+
+        public static CharacterPropertiesCorpseRegistry GetCorpse(this Character character, uint guid, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterReadLock();
+            try
+            {
+                return character.CharacterPropertiesCorpseRegistry.FirstOrDefault(i => i.Corpse.Full == guid);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+
+        public static List<CharacterPropertiesCorpseRegistry> GetCorpses(this Character character, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterReadLock();
+            try
+            {
+                return character.CharacterPropertiesCorpseRegistry.ToList();
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+        
+        public static CharacterPropertiesCorpseRegistry AddCorpse(this Character character, ObjectGuid corpse, string killer, string location, DateTime time, DateTime decayTime, ReaderWriterLockSlim rwLock, out bool alreadyExists)
+        {
+            rwLock.EnterUpgradeableReadLock();
+            try
+            {
+                var entity = character.CharacterPropertiesCorpseRegistry.FirstOrDefault(i => i.Corpse == corpse);
+                if (entity != null)
+                {
+                    alreadyExists = true;
+                    return entity;
+                }
+
+                rwLock.EnterWriteLock();
+                try
+                {
+                    entity = new CharacterPropertiesCorpseRegistry { CharacterId = character.Id, Corpse = corpse, Killer = killer, Location = location, Time = time, DecayTime = decayTime};
+                    character.CharacterPropertiesCorpseRegistry.Add(entity);
+                    alreadyExists = false;
+                    return entity;
+                }
+                finally
+                {
+                    rwLock.ExitWriteLock();
+                }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        public static bool TryRemoveCorpse(this Character character, ObjectGuid guid, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterUpgradeableReadLock();
+            try
+            {
+                var entity = character.CharacterPropertiesCorpseRegistry.FirstOrDefault(i => i.Corpse == guid);
+                if (entity != null)
+                {
+                    rwLock.EnterWriteLock();
+                    try
+                    {
+                        character.CharacterPropertiesCorpseRegistry.Remove(entity);
+                        entity.Character = null;
+                        return true;
+                    }
+                    finally
+                    {
+                        rwLock.ExitWriteLock();
+                    }
+                }
+                return false;
             }
             finally
             {
