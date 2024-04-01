@@ -1456,6 +1456,46 @@ namespace ACE.Database.Models.Shard
                     .HasConstraintName("wcid_titlebook");
             });
 
+            modelBuilder.Entity<CharacterPropertiesCorpseRegistry>(entity =>
+            {
+                entity.HasKey(e => new { e.CharacterId, e.Corpse })
+                    .HasName("PRIMARY")
+                    .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+
+                entity.ToTable("character_properties_corpse_registry");
+
+                entity.HasComment("Player Corpse Registry");
+
+                entity.Property(e => e.CharacterId)
+                    .HasColumnName("character_Id")
+                    .HasComment("Id of the character this property belongs to");
+
+                entity.Property(e => e.Corpse)
+                    .HasColumnName("Corpse")
+                    .HasComment("GUID of Corpse");
+
+                entity.Property(e => e.Killer)
+                    .HasColumnName("Killer")
+                    .HasComment("Name of killer");
+
+                entity.Property(e => e.Location)
+                    .HasColumnName("Location")
+                    .HasComment("Location in coordinates or dungeon name");
+
+                entity.Property(e => e.Time)
+                .HasColumnName("Time")
+                .HasComment("DateTime of corpse creation");
+
+                entity.Property(e => e.DecayTime)
+                .HasColumnName("Decay Time")
+                .HasComment("Estimated decay time of corpse");
+
+                entity.HasOne(d => d.Character)
+                    .WithMany(p => p.CharacterPropertiesCorpseRegistry)
+                    .HasForeignKey(d => d.CharacterId)
+                    .HasConstraintName("character_Id_corpses");
+            });
+
             modelBuilder.Entity<ConfigPropertiesBoolean>(entity =>
             {
                 entity.HasKey(e => e.Key)

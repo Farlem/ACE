@@ -37,7 +37,7 @@ namespace ACE.Server.Managers
             return Player.Character.GetCorpses(Player.CharacterDatabaseLock);
         }
 
-            public void AddCorpse(Player player, ObjectGuid corpse, string killer, Position position, DateTime time)
+            public void AddCorpse(Player player, ObjectGuid corpse, string killer, Position position)
         {
 
             // if (DungeonLandblocks.TryGetValue(position.Landblock.LandblockId))
@@ -59,7 +59,7 @@ namespace ACE.Server.Managers
             var minutesToDecay = (int)player.Level * 60;
             var decayTime = DateTime.UtcNow.AddMinutes(minutesToDecay);
 
-            player.Character.AddCorpse(corpse, killer, location, DateTime.UtcNow, decayTime, player.CharacterDatabaseLock, out bool added);
+            player.Character.AddCorpse(corpse.Full, killer, location, DateTime.UtcNow, decayTime, player.CharacterDatabaseLock, out bool added);
 
              if (added)
                 player.CharacterChangesDetected = true;

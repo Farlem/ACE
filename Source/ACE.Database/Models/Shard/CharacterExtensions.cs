@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ACE.Database.Models.Shard
@@ -745,7 +746,7 @@ namespace ACE.Database.Models.Shard
             rwLock.EnterReadLock();
             try
             {
-                return character.CharacterPropertiesCorpseRegistry.FirstOrDefault(i => i.Corpse.Full == guid);
+                return character.CharacterPropertiesCorpseRegistry.FirstOrDefault(i => i.Corpse == guid);
             }
             finally
             {
@@ -766,7 +767,7 @@ namespace ACE.Database.Models.Shard
             }
         }
         
-        public static CharacterPropertiesCorpseRegistry AddCorpse(this Character character, ObjectGuid corpse, string killer, string location, DateTime time, DateTime decayTime, ReaderWriterLockSlim rwLock, out bool alreadyExists)
+        public static CharacterPropertiesCorpseRegistry AddCorpse(this Character character, uint corpse, string killer, string location, DateTime time, DateTime decayTime, ReaderWriterLockSlim rwLock, out bool alreadyExists)
         {
             rwLock.EnterUpgradeableReadLock();
             try
@@ -797,7 +798,7 @@ namespace ACE.Database.Models.Shard
             }
         }
 
-        public static bool TryRemoveCorpse(this Character character, ObjectGuid guid, ReaderWriterLockSlim rwLock)
+        public static bool TryRemoveCorpse(this Character character, uint guid, ReaderWriterLockSlim rwLock)
         {
             rwLock.EnterUpgradeableReadLock();
             try

@@ -205,7 +205,7 @@ namespace ACE.Server.Command.Handlers
                 // first we query the DB to see if any of the corpses no longer exist, and remove them from the list if so
                 foreach (var corpse in corpses)
                 { 
-                    var stillExists = DatabaseManager.Shard.BaseDatabase.GetBiota(corpse.Corpse.Full);
+                    var stillExists = DatabaseManager.Shard.BaseDatabase.GetBiota(corpse.Corpse);
 
                     if (stillExists != null && stillExists.WeenieType != (int)WeenieType.Corpse)
                         session.Player.CorpseManager.RemoveCorpse(corpse);

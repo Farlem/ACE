@@ -150,8 +150,8 @@ namespace ACE.Server.WorldObjects
         public bool HasPermission(Player player)
         {
             // players can loot their own corpses
-            if (VictimId == null || player.Guid.Full == VictimId)
-            {
+           if (VictimId == null || player.Guid.Full == VictimId)
+            /* {
                 // remove this corpse from their log upon opening
                 if (player.CorpseManager.CorpseLog != null)
                 {
@@ -164,9 +164,8 @@ namespace ACE.Server.WorldObjects
                         }
                     }
 
-                }
+                } */
                 return true;
-            }
 
             // players can loot corpses of creatures they killed or corpses that have previously been looted by killer
             if (KillerId != null && player.Guid.Full == KillerId || IsLooted)
@@ -194,7 +193,7 @@ namespace ACE.Server.WorldObjects
 
                     player.LootPermission.Remove(victimGuid);
 
-                    // if permitter is still online, remove this corpse from their log upon opening
+                    /*// if permitter is still online, remove this corpse from their log upon opening
                     if (victim != null)
                     {
                         foreach (var corpse in victim.CorpseManager.CorpseLog)
@@ -205,16 +204,16 @@ namespace ACE.Server.WorldObjects
                                 break;
                             }
                         }
-                    }
+                    } */
 
                 }
                 return true;
             }
             if (permitteeOpened != null && permitteeOpened.Contains(player.Guid.Full))
             {
-                if (victim != null)
+             /*   if (victim != null)
                 {
-                    foreach (var corpse in victim.CorpseManager.CorpseLog)
+                    foreach (var corpse in victim.CorpseManager.GetCorpses)
                     {
                         if (corpse.Corpse == this.Guid)
                         {
@@ -222,7 +221,7 @@ namespace ACE.Server.WorldObjects
                             break;
                         }
                     }
-                }
+                } */
                 return true;
             }
 

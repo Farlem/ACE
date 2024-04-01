@@ -10,7 +10,7 @@ namespace ACE.Database.Models.Shard
     {
         public uint CharacterId { get; set; }
 
-        public ObjectGuid Corpse { get; set; }
+        public uint Corpse { get; set; }
 
         public string Killer { get; set; }
 
