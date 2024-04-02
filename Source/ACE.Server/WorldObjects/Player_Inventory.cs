@@ -748,6 +748,8 @@ namespace ACE.Server.WorldObjects
                 rootContainer.Value += (stack.StackUnitValue ?? 0) * amount;
             }
 
+            RecalculateBurden();
+
             return true;
         }
 
@@ -1118,19 +1120,6 @@ namespace ACE.Server.WorldObjects
                                     }
                                 }
 
-                                // CUSTOM - Automatic Ivorying
-                                if (item.Attuned == AttunedStatus.Attuned)
-                                {
-                                    if (item.GetProperty(PropertyBool.Ivoryable) ?? false)
-                                    {
-                                        item.Attuned = AttunedStatus.Normal;
-                                        item.AllowedWielder = this.Guid.Full;
-                                        item.CraftsmanName = this.Name;
-                                        item.Ivoryable = null;
-                                    }
-                                }
-
-
                                 if (questSolve)
                                     item.EmoteManager.OnQuest(this);
 
@@ -1309,6 +1298,15 @@ namespace ACE.Server.WorldObjects
         {
             //Console.WriteLine($"-> DoHandleActionPutItemInContainer({item.Name}, {itemRootOwner?.Name}, {itemWasEquipped}, {container?.Name}, {containerRootOwner?.Name}, {placement})");
 
+            ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
+            var itemType = item.WeenieType == WeenieType.Ammunition ? ItemType.CraftFletchingIntermediate : item.ItemType;
+            if (containerValidTypes != 0 && (itemType & containerValidTypes) == 0)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
+
             Position prevLocation = null;
             Landblock prevLandblock = null;
 
@@ -1422,6 +1420,10 @@ namespace ACE.Server.WorldObjects
             Session.Network.EnqueueSend(
                 new GameMessagePublicUpdateInstanceID(item, PropertyInstanceId.Container, container.Guid),
                 new GameEventItemServerSaysContainId(Session, item, container));
+
+            // SPECIALIZED PACKS: Only recalculate burden on an item going into a container when it's a spec pack
+            if (container != null && container.MerchandiseItemTypes.HasValue)
+               RecalculateBurden();
 
             return true;
         }
@@ -2458,6 +2460,15 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
+            var itemType = stack.WeenieType == WeenieType.Ammunition ? ItemType.CraftFletchingIntermediate : stack.ItemType;
+            if (containerValidTypes != 0 && (itemType & containerValidTypes) == 0)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {container.Name} can't hold that type of item!")); // Custom error message
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId));
+                return;
+            }
+
             if ((stackRootOwner == this && containerRootOwner != this)  || (stackRootOwner != this && containerRootOwner == this)) // Movement is between the player and the world
             {
                 if (stackRootOwner is Vendor)
@@ -2595,6 +2606,8 @@ namespace ACE.Server.WorldObjects
             else
                 Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
 
+            RecalculateBurden();
+
             return true;
         }
 
@@ -2717,6 +2730,7 @@ namespace ACE.Server.WorldObjects
 
                 var returnStance = new Motion(CurrentMotionState.Stance);
                 EnqueueBroadcastMotion(returnStance);
+                RecalculateBurden();
             });
 
             actionChain.EnqueueChain();
@@ -3301,6 +3315,8 @@ namespace ACE.Server.WorldObjects
                 _log.Debug($"[CORPSE] {Name} (0x{Guid}) merged {amount:N0} {(sourceStack.IsDestroyed ? $"which resulted in the destruction" : $"leaving behind {sourceStack.StackSize:N0}")} of {sourceStack.Name} (0x{sourceStack.Guid}) to {targetStack.Name} (0x{targetStack.Guid}) from {sourceStackRootOwner.Name} (0x{sourceStackRootOwner.Guid})");
                 targetStack.SaveBiotaToDatabase();
             }
+
+            RecalculateBurden();
 
             return true;
         }
@@ -3914,18 +3930,6 @@ namespace ACE.Server.WorldObjects
                     if (shade > 0)
                         item.Shade = shade;
 
-                    // CUSTOM - Automatic Ivorying
-                    if (item.Attuned == AttunedStatus.Attuned)
-                    {
-                        if (item.GetProperty(PropertyBool.Ivoryable) ?? false)
-                        {
-                            item.Attuned = AttunedStatus.Normal;
-                            item.AllowedWielder = this.Guid.Full;
-                            item.CraftsmanName = this.Name;
-                            item.Ivoryable = null;
-                        }
-                    }
-
                     TryCreateForGive(emoter, item);
                 }
             }
@@ -4112,6 +4116,8 @@ namespace ACE.Server.WorldObjects
                 Value += (target.Value ?? 0);
             }
 
+            RecalculateBurden();
+
             return true;
         }
 
@@ -4122,5 +4128,27 @@ namespace ACE.Server.WorldObjects
         {
             return GetEquippedObjectsOfWCID(weenieClassId).Select(i => i.StackSize ?? 1).Sum();
         }
+
+        public void RecalculateBurden()
+        {
+            var totalBurden = 0;
+            foreach (var wieldedObject in EquippedObjects.Values)
+            {
+                totalBurden += wieldedObject.EncumbranceVal ?? 0;
+            }
+            foreach (var inventoryObject in Inventory.Values)
+            {
+                if (inventoryObject is Container container && container.MerchandiseItemTypes.HasValue)
+                {
+                    totalBurden += (int)inventoryObject.EncumbranceVal / 2;
+                }
+                else
+                    totalBurden += inventoryObject.EncumbranceVal ?? 0;
+            }
+            EncumbranceVal = totalBurden;
+            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
+        }
+
+
     }
 }

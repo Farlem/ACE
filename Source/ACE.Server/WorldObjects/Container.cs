@@ -6,11 +6,8 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
-using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
-using ACE.Server.Factories.Tables;
-using ACE.Server.Factories.Tables.Spells;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages;
@@ -224,7 +221,10 @@ namespace ACE.Server.WorldObjects
             if (includeSidePacks)
             {
                 foreach (var sidePack in Inventory.Values.OfType<Container>())
-                    freeSlots += (sidePack.ItemCapacity ?? 0) - sidePack.CountPackItems();
+                {
+                    if (sidePack.MerchandiseItemTypes == 0) 
+                        freeSlots += (sidePack.ItemCapacity ?? 0) - sidePack.CountPackItems();
+                }
             }
 
             return freeSlots;
@@ -594,7 +594,24 @@ namespace ACE.Server.WorldObjects
             if (this is Player && worldObject.MutableQuestItem == true)
                 LootGenerationFactory.MutateQuestItem(worldObject);
 
+            // CUSTOM - Automatic Ivorying
+            if (this is Player && worldObject.Attuned == AttunedStatus.Attuned)
+            {
+                if (worldObject.GetProperty(PropertyBool.Ivoryable) ?? false)
+                {
+                    worldObject.Attuned = AttunedStatus.Normal;
+                    worldObject.AllowedWielder = this.Guid.Full;
+                    worldObject.CraftsmanName = this.Name;
+                    worldObject.Ivoryable = null;
+                }
+            }
+
             OnAddItem();
+
+           if (this is Player containerPlayer)
+                containerPlayer.RecalculateBurden();
+            else if (container.Container != null && container.Container is Player cPlayer)
+                cPlayer.RecalculateBurden();
 
             return true;
         }
@@ -685,6 +702,11 @@ namespace ACE.Server.WorldObjects
 
                 OnRemoveItem(item);
 
+                // SPECIALIZED PACKS:  Only recalculate player burden on remove from Inventory if the item was contained in a Specialized Pack
+                if (this is Player player)
+                    player.RecalculateBurden();
+
+
                 return true;
             }
 
@@ -696,6 +718,10 @@ namespace ACE.Server.WorldObjects
                 {
                     EncumbranceVal -= (item.EncumbranceVal ?? 0);
                     Value -= (item.Value ?? 0);
+
+                    // SPECIALIZED PACKS: Called when dropping an item from a spec pack entirely, or when moving from this pack to another
+                    if (container.Container != null && container.Container is Player containerPlayer)
+                        containerPlayer.RecalculateBurden();
 
                     return true;
                 }
