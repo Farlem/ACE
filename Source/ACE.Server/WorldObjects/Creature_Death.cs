@@ -16,6 +16,7 @@ using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using static ACE.Common.DerethDateTime;
 
 namespace ACE.Server.WorldObjects
 {
@@ -69,7 +70,7 @@ namespace ACE.Server.WorldObjects
             if (!IsOnNoDeathXPLandblock)
                 OnDeath_GrantXP();
 
-            if (!StruckByUnshrouded)
+            if (!StruckByUnshrouded && !(this is Player))
                 HandleShroudRewards();
 
             return GetDeathMessage(lastDamager, damageType, criticalHit);
@@ -604,8 +605,6 @@ namespace ACE.Server.WorldObjects
 
             if (player != null)
             {
-                corpse.SetPosition(PositionType.Location, corpse.Location);
-
                 var killerIsOlthoiPlayer = killer != null && killer.IsOlthoiPlayer;
                 var killerIsPkPlayer = killer != null && killer.IsPlayer && killer.Guid != Guid;
 
@@ -633,6 +632,30 @@ namespace ACE.Server.WorldObjects
 
                     if (dropped.Count > 0)
                         saveCorpse = true;
+
+                    var position = player.Location;
+                    var location = "";
+
+                    var landblock = LandblockManager.GetLandblock(position.LandblockId, false);
+
+                    if (Player.DungeonList.TryGetValue((int)position.Landblock, out var dungeonName))
+                        location = dungeonName;
+                    else if (landblock.IsDungeon)
+                         location = "Unknown Dungeon";
+                    else
+                        location = corpse.Location.GetMapCoordStr();
+
+                    var minutesToDecay = (int)player.Level * 30;
+                    var decayTime = DateTime.UtcNow.AddMinutes(minutesToDecay);
+
+                    // Corpse GUID, Killer, DateTime (now), Location, DecayTime, Lost Items
+                    if (player.CorpseLog == null)
+                        player.CorpseLog = $"{corpse.Guid.Full}|{killer.Name}|{DateTime.UtcNow}|{location}|{decayTime}|{player.DropMessage(dropped, 0)};";
+                    else
+                       player.CorpseLog += $"{corpse.Guid.Full}|{killer.Name}|{DateTime.UtcNow}|{location}|{decayTime}|{player.DropMessage(dropped, 0)};";
+
+
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Use the @corpses command for a list of recent corpses. To query items dropped, type '@corpses' followed by the corpse number on the list. To remove a corpse you do not plan on retrieving, type '@corpses remove' followed by the corpse number.", ChatMessageType.Broadcast));
 
                     if ((player.Location.Cell & 0xFFFF) < 0x100)
                     {
@@ -818,16 +841,16 @@ namespace ACE.Server.WorldObjects
 
         public void HandleShroudRewards()
         {
-            var scaledDamagers = DamageHistory.TotalDamage.Values.Where(d => (d.Level > Level + 10) && d.TotalDamage >= DamageHistory.TotalHealth / 3);
+            var scaledDamagers = DamageHistory.TotalDamage.Values.Where(d => (d.Level > Level + 10) && d.TotalDamage >= DamageHistory.TotalHealth / 10);
 
             if (scaledDamagers.Any())
             {
-                var chance = 0.05f;
+                var bonusChance = 0f;
 
-                var accompaniedLowbie = DamageHistory.TotalDamage.Values.Where(d => (d.Level < Level + 5) && (d.Level > Level - 5) && d.TotalDamage >= DamageHistory.TotalHealth / 3);
+                var accompaniedLowbie = DamageHistory.TotalDamage.Values.Where(d => (d.Level < Level + 5) && (d.Level > Level - 5)).Sum(d => d.TotalDamage);
 
-                if (accompaniedLowbie.Any())
-                    chance += 0.05f;
+                if (accompaniedLowbie >= DamageHistory.TotalHealth / 5)
+                    bonusChance += 0.05f;
 
                 foreach (var damageInfo in scaledDamagers)
                 {
@@ -837,13 +860,31 @@ namespace ACE.Server.WorldObjects
                         if (matchingGuid.IsPlayer())
                         {
                             var player = PlayerManager.GetOnlinePlayer(matchingGuid);
-                            if (player != null && chance >= ThreadSafeRandom.Next(0f, 1f))
-                            {
-                                var reward = WorldObjectFactory.CreateNewWorldObject(1054175);
-                                player.TryCreateInInventoryWithNetworking(reward);
-                                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Shard of Shrouding glimmers, and produces a small fragment of crystallized energy!", ChatMessageType.Broadcast));
-                                player.PlayParticleEffect(PlayScript.EnchantUpPurple, player.Guid);
 
+                            if (player != null)
+                            {
+                                float proportion = damageInfo.TotalDamage / DamageHistory.TotalHealth;
+                                if (proportion >= 0.5f)
+                                    proportion = 0.5f;
+
+                                float baseChance = 0;
+
+                                if (proportion >= 0.1f && proportion <= 0.24f)
+                                    baseChance = proportion / 20;
+                                if (proportion >= 0.25f && proportion <= 0.39f)
+                                    baseChance = proportion / 15;
+                                else
+                                    baseChance = proportion / 10;
+
+                                baseChance += bonusChance;
+
+                                if (baseChance >= ThreadSafeRandom.Next(0f, 1f))
+                                {
+                                    var reward = WorldObjectFactory.CreateNewWorldObject(1054175);
+                                    player.TryCreateInInventoryWithNetworking(reward);
+                                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Shard of Shrouding glimmers, and produces a small fragment of crystallized energy!", ChatMessageType.Broadcast));
+                                    player.PlayParticleEffect(PlayScript.EnchantUpPurple, player.Guid);
+                                }
                             }
                         }
 
