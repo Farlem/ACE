@@ -12,21 +12,21 @@ namespace ACE.Server.WorldObjects
         private static bool DebugArchetypeSystem = false;
 
         // Stat ranges by tier
-        private static readonly int[] enemyHealth = { 10, 100, 200, 350, 500, 800, 1200, 1600, 2000};
+        private static readonly int[] enemyHealth = { 10, 50, 150, 350, 500, 800, 1200, 1600, 2000};
         private static readonly int[] enemyStaminaMana = { 20, 100, 150, 225, 325, 450, 650, 950, 1250 };
         private static readonly int[] enemyHealthRegen = { 1, 2, 5, 10, 15, 20, 25, 30, 50 };
         private static readonly int[] enemyStaminaManaRegen = { 1, 2, 5, 10, 15, 20, 25, 30, 50 };
 
-        private static readonly int[] enemyArmorAegis = { 20, 30, 45, 68, 101, 152, 228, 342, 513 };
-        private static readonly int[] enemyAttack = { 10, 75, 150, 200, 250, 300, 400, 500, 1000};
-        private static readonly int[] enemyDefense = { 10, 100, 200, 300, 400, 500, 600, 700, 1000 };
+        private static readonly int[] enemyArmorWard = { 10, 20, 45, 68, 101, 152, 228, 342, 513 };
+        private static readonly int[] enemyAttack = { 10, 50, 150, 200, 250, 300, 400, 500, 1000};
+        private static readonly int[] enemyDefense = { 10, 75, 200, 300, 400, 500, 600, 700, 1000 };
         private static readonly int[] enemyAssessDeception = { 10, 50, 100, 150, 200, 250, 300, 350, 400 };
         private static readonly int[] enemyRun = { 10, 100, 150, 200, 250, 300, 400, 500, 600 };
 
-        private static readonly float[] enemyDamage = { 2.0f, 2.5f, 3.0f, 3.3f, 3.6f, 3.9f, 4.2f, 5.0f, 6.0f }; // percentage of player health to be taken per second after all stats (of player and enemy) are considered
+        private static readonly float[] enemyDamage = { 1.0f, 1.5f, 3.0f, 3.3f, 3.6f, 3.9f, 4.2f, 5.0f, 6.0f }; // percentage of player health to be taken per second after all stats (of player and enemy) are considered
 
         private static readonly int[] avgPlayerHealth = { 25, 45, 95, 125, 155, 185, 215, 245, 320 };
-        private static readonly float[] avgPlayerArmorReduction = { 0.57f, 0.57f, 0.40f, 0.31f, 0.25f, 0.21f, 0.18f, 0.16f, 0.1f };
+        private static readonly float[] avgPlayerArmorReduction = { 0.75f, 0.57f, 0.40f, 0.31f, 0.25f, 0.21f, 0.18f, 0.16f, 0.1f };
         private static readonly float[] avgPlayerLifeProtReduction = { 1.0f, 0.9f, 0.9f, 0.85f, 0.85f, 0.8f, 0.8f, 0.75f, 0.75f };
         private static readonly int[] avgPlayerMeleeDefense = { 10, 75, 150, 175, 200, 225, 275, 350, 500 };
 
@@ -260,7 +260,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private void SetDamageArmorAegis(int tier, float statWeight, double toughness, double physicality, double magic, double lethality)
+        private void SetDamageArmorWard(int tier, float statWeight, double toughness, double physicality, double magic, double lethality)
         {
             if (DebugArchetypeSystem)
                 Console.WriteLine($"\n-- SetDamageArmorAegus() for {Name} ({WeenieClassId}) (statWeight: {statWeight}) --");
@@ -315,17 +315,17 @@ namespace ACE.Server.WorldObjects
                         }
                     }
                     else
-                        _log.Warning($"Creature_ArchetypeSystem.SetDamageArmorAegis() - Unable to set damage/armor on bodyparts of {Weenie}. Body parts table may be missing from this wcid.");
+                        _log.Warning("Creature_ArchetypeSystem.SetDamageArmorWard() - Unable to set damage/armor on bodyparts of {Name}. Body parts table may be missing from this wcid.", Name);
                 }
                 else
-                    _log.Warning($"Creature.SetDamageArmorAegis() - Weenie == null for {Name} ({WeenieClassId}). Cannot set Damage/Armor for this creature.");
+                    _log.Warning("Creature.SetDamageArmorWard() - Weenie == null for {Name} ({WeenieClassId}). Cannot set Damage/Armor for this creature.", Name, WeenieClassId);
             }
 
-            // Aegis
+            // Ward
             {
-                var tweakedAegis = GetNewAegisLevel(tier, statWeight, toughness, magic);
+                var tweakedWard = GetNewWardLevel(tier, statWeight, toughness, magic);
 
-                AegisLevel = tweakedAegis;
+                WardLevel = tweakedWard;
             }
         }
 
@@ -352,12 +352,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (physicality + dexterity) / 2;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Strength.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Strength.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Martial Weapons skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Strength attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Martial Weapons skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Strength attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"-Melee Attack\n" +
@@ -376,12 +381,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (physicality + dexterity) / 2;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Coordination.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Coordination.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Unarmed Combat skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Unarmed Combat skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"-Unarmed Combat\n" +
@@ -400,12 +410,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (physicality + dexterity) / 2;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Coordination.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Coordination.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Dagger skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Dagger skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"-Dagger\n" +
@@ -424,12 +439,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (physicality + dexterity) / 2;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Coordination.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Coordination.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Staff skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Staff skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"-Staff\n" +
@@ -448,12 +468,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = dexterity;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Coordination.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Coordination.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Bow skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Bow skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Missile Attack\n" +
@@ -472,12 +497,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = dexterity;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Strength.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Strength.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Thrown Weapons skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Strength attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Thrown Weapons skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Thrown Weapons\n" +
@@ -496,12 +526,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = magic;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Self.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Self.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base War Magic skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base War Magic skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-War Magic\n" +
@@ -520,12 +555,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = magic;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Self.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Self.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Life Magic skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base War Magic skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Life Magic\n" +
@@ -540,18 +580,23 @@ namespace ACE.Server.WorldObjects
 
         private uint GetNewPhysicalDefenseSkill(int tier, float statWeight, double toughness, double physicalityDexterity)
         {
-                var target = enemyDefense[tier] + (enemyDefense[tier + 1] - enemyDefense[tier]) * statWeight;
-                var multiplier = (toughness + physicalityDexterity) / 2;
-                var tweakedSkill = (uint)(target * multiplier);
+            var target = enemyDefense[tier] + (enemyDefense[tier + 1] - enemyDefense[tier]) * statWeight;
+            var multiplier = (toughness + physicalityDexterity) / 2;
+            var tweakedSkill = (uint)(target * multiplier);
 
-                var skillFromAttributes = (Coordination.Base + Quickness.Base) / 4;
+            var divisor = 4;
+            var skillFromAttributes = (Coordination.Base + Quickness.Base) / divisor;
 
-                if (skillFromAttributes > tweakedSkill)
-                    _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Melee Defense skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coodination and/or Quickness attributes should be lowered on the {Name} weenie file.");
+            if (skillFromAttributes > tweakedSkill)
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Physical Defense skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination and/or Quickness attributes should be lowered by a total of {AttributeAdjustment}.", tweakedSkill, Name, WeenieClassId, attributeAdjustment);
+            }
 
-                var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
-                if (DebugArchetypeSystem)
+            if (DebugArchetypeSystem)
                     Console.Write($"\n-Physical Defense\n" +
                     $" Target: {target}\n" +
                     $" Multiplier: {multiplier}\n" +
@@ -562,42 +607,23 @@ namespace ACE.Server.WorldObjects
             return newSkill;
         }
 
-        private uint GetNewMissileDefenseSkill(int tier, float statWeight, double toughness, double dexterity)
-        {
-            var target = enemyDefense[tier] + (enemyDefense[tier + 1] - enemyDefense[tier]) * statWeight;
-            var multiplier = (toughness + dexterity) / 2;
-            var tweakedSkill = (uint)(target * multiplier);
-
-            var skillFromAttributes = (Coordination.Base + Quickness.Base) / 4;
-
-            if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Missile Defense skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Coodination and/or Quickness attributes should be lowered on the {Name} weenie file.");
-
-            var newSkill = tweakedSkill - skillFromAttributes;
-
-            if (DebugArchetypeSystem)
-                Console.Write($"\n-Missile Defense\n" +
-                $" Target: {target}\n" +
-                $" Multiplier: {multiplier}\n" +
-                $" TweakedSkill: {tweakedSkill}\n" +
-                $" SkillFromAttributes: {skillFromAttributes}\n" +
-                $" NewSkill: {newSkill}");
-
-            return newSkill;
-        }
-
         private uint GetNewMagicDefenseSkill(int tier, float statWeight, double toughness, double magic)
         {
             var target = enemyDefense[tier] + (enemyDefense[tier + 1] - enemyDefense[tier]) * statWeight;
             var multiplier = (toughness + magic) / 2;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = (Focus.Base + Self.Base) / 4;
+            var divisor = 4;
+            var skillFromAttributes = (Focus.Base + Self.Base) / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Magic Defense skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Focus and/or Self attributes should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Magic Defense skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Coordination and/or Quickness attributes should be lowered by a total of {AttributeAdjustment}.", tweakedSkill, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Magic Defense\n" +
@@ -616,12 +642,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = intelligence;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Focus.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Focus.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Perception skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Focus attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Perception skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Focus attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Perception\n" +
@@ -640,12 +671,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = intelligence;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Focus.Base / 2;
+            var divisor = 2;
+            var skillFromAttributes = Focus.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Deception skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Focus attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Deception skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Focus attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Deception\n" +
@@ -664,12 +700,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = dexterity;
             var tweakedSkill = (uint)(target * multiplier);
 
-            var skillFromAttributes = Quickness.Base / 2;
+            var divisor = 1;
+            var skillFromAttributes = Quickness.Base / divisor;
 
             if (skillFromAttributes > tweakedSkill)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Run skill to {(int)tweakedSkill - skillFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Quickness attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedSkill - skillFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Run skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Quickness attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newSkill = tweakedSkill - skillFromAttributes;
+            var newSkill = tweakedSkill - (uint)skillFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Run\n" +
@@ -685,7 +726,7 @@ namespace ACE.Server.WorldObjects
 
         private int GetNewArmorLevel(int tier, float statWeight, double toughness, double physicality)
         {
-            var target = enemyArmorAegis[tier] + (enemyArmorAegis[tier + 1] - enemyArmorAegis[tier]) * statWeight;
+            var target = enemyArmorWard[tier] + (enemyArmorWard[tier + 1] - enemyArmorWard[tier]) * statWeight;
             var multiplier = (toughness + physicality) / 2;
             var newArmor = (int)(target * multiplier);
 
@@ -698,19 +739,19 @@ namespace ACE.Server.WorldObjects
             return newArmor;
         }
 
-        private int GetNewAegisLevel(int tier, float statWeight, double toughness, double magic)
+        private int GetNewWardLevel(int tier, float statWeight, double toughness, double magic)
         {
-            var target = enemyArmorAegis[tier] + (enemyArmorAegis[tier + 1] - enemyArmorAegis[tier]) * statWeight;
+            var target = enemyArmorWard[tier] + (enemyArmorWard[tier + 1] - enemyArmorWard[tier]) * statWeight;
             var multiplier = (toughness + magic) / 2;
-            var newAegis = (int)(target * multiplier);
+            var newWard = (int)(target * multiplier);
 
             if (DebugArchetypeSystem)
-                Console.Write($"\n-Aegis\n" +
+                Console.Write($"\n-Ward\n" +
                 $" Target: {target}\n" +
                 $" Multiplier: {multiplier}\n" +
-                $" TweakedSkill: {newAegis}");
+                $" TweakedSkill: {newWard}");
 
-            return newAegis;
+            return newWard;
         }
 
         private uint GetNewHealthLevel(int tier, float statWeight, double toughness, double physicality)
@@ -719,12 +760,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (toughness + physicality) / 2;
             var tweakedVital = (uint)(target * multiplier);
 
-            var vitalFromAttributes = Endurance.Base / 2;
+            var divisor = 2;
+            var vitalFromAttributes = Endurance.Base / divisor;
 
             if (vitalFromAttributes > tweakedVital)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Health vital to {(int)tweakedVital - vitalFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Endurance attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedVital - vitalFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Health skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Endurance attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newVital = tweakedVital - vitalFromAttributes;
+            var newVital = tweakedVital - (uint)vitalFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Health\n" +
@@ -758,12 +804,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = (physicality + dexterity) / 2;
             var tweakedVital = (uint)(target * multiplier);
 
-            var vitalFromAttributes = Endurance.Base;
+            var divisor = 1;
+            var vitalFromAttributes = Endurance.Base / divisor;
 
             if (vitalFromAttributes > tweakedVital)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Stamina vital to {(int)tweakedVital - vitalFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Endurance attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedVital - vitalFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Stamina skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Endurance attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newVital = tweakedVital - vitalFromAttributes;
+            var newVital = tweakedVital - (uint)vitalFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Stamina\n" +
@@ -797,12 +848,17 @@ namespace ACE.Server.WorldObjects
             var multiplier = magic;
             var tweakedVital = (uint)(target * multiplier);
 
-            var vitalFromAttributes = Self.Base;
+            var divisor = 1;
+            var vitalFromAttributes = Self.Base / divisor;
 
             if (vitalFromAttributes > tweakedVital)
-                _log.Warning($"Creature.SetSkills() - Archetype system is attempting to set the base Mana vital to {(int)tweakedVital - vitalFromAttributes} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered on the {Name} weenie file.");
+            {
+                var diff = (int)tweakedVital - vitalFromAttributes;
+                var attributeAdjustment = diff * divisor;
+                _log.Warning("Creature.SetSkills() - Archetype system is attempting to set the base Mana skill to {TweakedSkill} for {Name} ({WeenieClassId}) (defaulting to 1). Self attribute should be lowered by {AttributeAdjustment}.", diff, Name, WeenieClassId, attributeAdjustment);
+            }
 
-            var newVital = tweakedVital - vitalFromAttributes;
+            var newVital = tweakedVital - (uint)vitalFromAttributes;
 
             if (DebugArchetypeSystem)
                 Console.Write($"\n-Mana\n" +

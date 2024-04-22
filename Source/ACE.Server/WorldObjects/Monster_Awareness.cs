@@ -236,7 +236,7 @@ namespace ACE.Server.WorldObjects
                     return false;
                 }
 
-                if(visibleTargets.Count > 1 && untargetablePlayer != null)
+                if (visibleTargets.Count > 1 && untargetablePlayer != null)
                     visibleTargets.Remove(untargetablePlayer);
 
                 if (untargetablePlayer != null && untargetablePlayer is Player vanishedPlayer && Time.GetUnixTime() < vanishedPlayer.LastVanishActivated + 5)
@@ -252,6 +252,11 @@ namespace ACE.Server.WorldObjects
                         return false;
                     }
 
+                }
+
+                if (AttackTarget != null && GetDistance(AttackTarget) > VisualAwarenessRange)
+                {
+                    ThreatLevel.Remove(AttackTarget as Creature);
                 }
 
                 // Generally, a creature chooses whom to attack based on:

@@ -134,26 +134,29 @@ namespace ACE.Server.WorldObjects
             // Gain less xp for killing monsters below your level
             var overlevelPenalty = xpSourceLevel != null ? GetOverlevelPenalty((int)xpSourceLevel) : 1.0f;
 
-            // XP bonus for having higher level alt characters on your account. Doesn't share with fellow.
-            var altBonus = GetAltXpBonus();
-            amount = (long)(altBonus * amount);
+            // Kill XP bonus for having higher level alt characters on your account. Doesn't share with fellow.
+            if (xpType == XpType.Kill)
+            {
+                var altBonus = GetAltXpBonus();
+                amount = (long)(altBonus * amount);
+            }
 
-            var m_amount = (long)Math.Round(amount * overlevelPenalty * altBonus);
+            var m_amount = (long)Math.Round(amount * overlevelPenalty);
 
-            // Max possible kill xp gained is equal to 1% of your current level cost (5% of current level cost if under level 10)
+            // Max possible kill xp gained is equal to 1% of your current level cost (10% of current level cost if under level 10)
             if (xpType == XpType.Kill)
             {
                 if (Level.Value < 10)
                 {
                     var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
-                    var maxXpPerKill = (long)(currentLevelCost * 0.05);
+                    var maxXpPerKill = (long)(currentLevelCost * 0.1);
 
                     m_amount = Math.Min(m_amount, maxXpPerKill);
                 }
                 else if (Level.Value < 20)
                 {
                     var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
-                    var maxXpPerKill = (long)(currentLevelCost * 0.025);
+                    var maxXpPerKill = (long)(currentLevelCost * 0.05);
 
                     m_amount = Math.Min(m_amount, maxXpPerKill);
                 }
@@ -176,27 +179,27 @@ namespace ACE.Server.WorldObjects
             // Max possible quest xp gained is equal to 50% of your current level cost (200% of current level cost if under level 10)
             if (xpType == XpType.Quest)
             {
-                if (Level.Value < 10)
-                {
-                    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
-                    var maxXpPerQuest = (long)(currentLevelCost * 2);
+                //if (Level.Value < 10)
+                //{
+                //    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
+                //    var maxXpPerQuest = (long)(currentLevelCost * 2);
 
-                    m_amount = Math.Min(m_amount, maxXpPerQuest);
-                }
-                else if (Level.Value < 20)
-                {
-                    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
-                    var maxXpPerQuest = (long)(currentLevelCost);
+                //    m_amount = Math.Min(m_amount, maxXpPerQuest);
+                //}
+                //else if (Level.Value < 20)
+                //{
+                //    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
+                //    var maxXpPerQuest = (long)(currentLevelCost);
 
-                    m_amount = Math.Min(m_amount, maxXpPerQuest);
-                }
-                else if (Level.Value <= 126)
-                {
-                    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
-                    var maxXpPerQuest = (long)(currentLevelCost * 0.5);
+                //    m_amount = Math.Min(m_amount, maxXpPerQuest);
+                //}
+                //else if (Level.Value <= 126)
+                //{
+                //    var currentLevelCost = DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value + 1] - DatManager.PortalDat.XpTable.CharacterLevelXPList[Level.Value];
+                //    var maxXpPerQuest = (long)(currentLevelCost * 0.5);
 
-                    m_amount = Math.Min(m_amount, maxXpPerQuest);
-                }
+                //    m_amount = Math.Min(m_amount, maxXpPerQuest);
+                //}
             }
 
             // Make sure UpdateXpAndLevel is done on this players thread
