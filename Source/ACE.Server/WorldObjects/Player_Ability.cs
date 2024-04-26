@@ -446,7 +446,7 @@ namespace ACE.Server.WorldObjects
         {
             var scaledStamps = Math.Round(playerAttacker.ScaleWithPowerAccuracyBar(20f));
 
-            scaledStamps += 10f;
+            scaledStamps += 20f;
 
             var numStrikes = playerAttacker.GetNumStrikes(playerAttacker.AttackType);
             if (numStrikes == 2)
@@ -471,7 +471,7 @@ namespace ACE.Server.WorldObjects
             var stacks = playerAttacker.QuestManager.GetCurrentSolves($"{playerAttacker.Name},Reckless");
             if (stacks > 250)
             {
-                var recklessChance = 0.1f * (stacks - 250) / 250;
+                var recklessChance = 0.075f * (stacks - 250) / 250;
                 if (recklessChance > ThreadSafeRandom.Next(0, 1))
                     playerAttacker.DamageTarget(playerAttacker, playerAttacker);
             }
@@ -480,7 +480,7 @@ namespace ACE.Server.WorldObjects
 
         public static int HandleOverloadStamps(Player sourcePlayer, int? spellTypeScaler, uint spellLevel)
         {
-            var baseStamps = 25;
+            var baseStamps = 50;
             var playerLevel = (int)(sourcePlayer.Level / 10);
 
             if (playerLevel > 7)
@@ -543,7 +543,7 @@ namespace ACE.Server.WorldObjects
             var stacks = sourcePlayer.QuestManager.GetCurrentSolves($"{sourcePlayer.Name},Overload");
             if (stacks > 250)
             { 
-                var overloadChance = 0.1f * (stacks - 250) / 250;
+                var overloadChance = 0.075f * (stacks - 250) / 250;
                 if (overloadChance > ThreadSafeRandom.Next(0, 1))
                 {
                     var damage = sourcePlayer.Health.MaxValue / 10;
