@@ -5,6 +5,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Network.GameAction.Actions;
 using ACE.Server.Network.GameMessages.Messages;
 using Org.BouncyCastle.Asn1.X509;
 using System;
@@ -32,7 +33,9 @@ namespace ACE.Server.WorldObjects
         public double LastEnchantedWeaponActivated = 0;
 
         public bool OverloadActivated = false;
+        public bool OverloadDumped = false;
         public bool RecklessActivated = false;
+        public bool RecklessDumped = false;
 
         public double MultishotActivatedDuration = 10;
         public double PhalanxActivatedDuration = 10;
@@ -469,12 +472,7 @@ namespace ACE.Server.WorldObjects
                 playerAttacker.QuestManager.Increment($"{playerAttacker.Name},Reckless", (int)scaledStamps);
 
             var stacks = playerAttacker.QuestManager.GetCurrentSolves($"{playerAttacker.Name},Reckless");
-            if (stacks > 250)
-            {
-                var recklessChance = 0.075f * (stacks - 250) / 250;
-                if (recklessChance > ThreadSafeRandom.Next(0, 1))
-                    playerAttacker.DamageTarget(playerAttacker, playerAttacker);
-            }
+
             return stacks;
         }
 
@@ -544,12 +542,19 @@ namespace ACE.Server.WorldObjects
             if (stacks > 250)
             { 
                 var overloadChance = 0.075f * (stacks - 250) / 250;
-                if (overloadChance > ThreadSafeRandom.Next(0, 1))
+                if (overloadChance > ThreadSafeRandom.Next(0f, 1f))
                 {
                     var damage = sourcePlayer.Health.MaxValue / 10;
                     sourcePlayer.UpdateVitalDelta(sourcePlayer.Health, -(int)damage);
                     sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Overloaded! You lose control of the energies flowing through you, suffering {damage} points of damage!", ChatMessageType.Magic));
                     sourcePlayer.PlayParticleEffect(PlayScript.Fizzle, sourcePlayer.Guid);
+                    sourcePlayer.DamageHistory.Add(sourcePlayer, DamageType.Health, (uint)-damage);
+                    if (sourcePlayer.IsDead)
+                    {
+                        var lastDamager = sourcePlayer.DamageHistory.LastDamager;
+                        sourcePlayer.OnDeath(lastDamager, DamageType.Health, false);
+                        sourcePlayer.Die();
+                    }
 
                 }
             }
