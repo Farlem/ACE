@@ -96,14 +96,11 @@ namespace ACE.Server.WorldObjects
 
             if (player != null)
             {
-                if (!player.ManaBarrierToggle && this.WeenieClassId == 1051110)
-                {
-                    // Console.WriteLine("No Cooldown");
-                }
-                else
+                // No Cooldown for Mana Barrier
+                if (this.WeenieClassId != 1051110)
                     player.EnchantmentManager.StartCooldown(this);
             }
-                
+
             // perform motion animation - rarely used (only 4 instances in PY16 db)
             if (ActivationResponse.HasFlag(ActivationResponse.Animate))
                 OnAnimate(activator);

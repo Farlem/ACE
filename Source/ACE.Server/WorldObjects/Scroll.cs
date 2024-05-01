@@ -93,10 +93,12 @@ namespace ACE.Server.WorldObjects
                 var skill = Spell.GetMagicSkill();
                 var playerSkill = player.GetCreatureSkill(skill);
 
-                if (!player.CanReadScroll(this))
+                if (!player.CanReadScroll(this, out bool spec))
                 {
                     var msg = "";
-                    if (playerSkill.AdvancementClass < SkillAdvancementClass.Trained)
+                    if (spec)
+                        msg = $"You must be specialized in {playerSkill.Skill.ToSentence()} to learn this spell!";
+                    else if (playerSkill.AdvancementClass < SkillAdvancementClass.Trained)
                         msg = $"You are not trained in {playerSkill.Skill.ToSentence()}!";
                     else
                         msg = $"You are not skilled enough in {playerSkill.Skill.ToSentence()} to learn this spell.";
